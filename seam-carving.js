@@ -60,8 +60,6 @@ function removeVerticalSeams(times, w, h, pixels) {
 				newImgData[newJ + 2] = pixels[j + 2];
 				newImgData[newJ + 3] = pixels[j + 3];
 				newJ += 4;
-				if (newJ == 792720)
-					console.log(j);
 			}
 			
 			//find connection
@@ -79,7 +77,6 @@ function removeVerticalSeams(times, w, h, pixels) {
 		}
 		
 		w--;
-		h--;
 		pixels = newImgData;
 	}
 	

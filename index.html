@@ -10,7 +10,7 @@
 
 <body>
   <div>
-	<img id="img" src="wave.png"/>
+	<img id="img" src="wave-small.png"/>
   </div>
   
   <div>
@@ -40,8 +40,9 @@
 	  gradients = computeGradient(imgData.data, img.width, img.height);
 	  drawGradient(ctx, img.width, img.height, gradients);
 	  
-	  newPixels = removeVerticalSeams(100, img.width, img.height, imgData.data);
-	  canvas.width = img.width - 100;
+	  newPixels = removeVerticalSeams(10, img.width, img.height, imgData.data);
+	  canvas.width = img.width - 10;
+	  canvas.height = img.height;
 	  ctx = canvas.getContext('2d');
 	  imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	  console.log("%o", newPixels.length);
