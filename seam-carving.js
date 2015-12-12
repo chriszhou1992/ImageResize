@@ -1,5 +1,5 @@
 
-function computeHorizontalSeams(gradients, w, h) {
+function computeVerticalSeams(gradients, w, h) {
 	//2D array used to memorize DP
 	seamEnergy = new Array(w);
 	for (var i = 0; i < seamEnergy.length; i++) {
@@ -26,17 +26,104 @@ function computeHorizontalSeams(gradients, w, h) {
 	return seamEnergy;
 }
 
-function drawHorizontalSeams(ctx, w, h, seamEnergy) {	
-	RED = ctx.createImageData(1, 1);
-	RED.data = [255, 0, 0, 255];
+function removeVerticalSeams(times, w, h, pixels) {
 	
-	for (var x = w - 1; x >= 0; x--) {
+	for (var i = 0; i < times; i++) {
+		
+		var gradients = computeGradient(pixels, w, h);
+		var seamEnergy = computeVerticalSeams(gradients, w, h)
+		
+		var newImgData = Array( (w - 1) * h * 4);
+		
 		var minIndex = 0;
-		for (var y = 1; y < h; y++) {	//find min seam to remove
-			if (seamEnergy[x][y] < seamEnergy[x][minIndex])
-				minIndex = y;
+		var y = h - 1;
+		
+		for (var x = 1; x < w; x++) {	//find min seam to remove
+			if (seamEnergy[x][y] < seamEnergy[minIndex][y])
+				minIndex = x;
 		}
-		ctx.putImageData(RED, x, minIndex);
-		console.log(x, minIndex);
+		
+		console.log(minIndex);
+		
+		for (; y >= 0; y--) {
+			
+			//remove seam in one row
+			var splitIndex = (y * w + minIndex) * 4;
+			var newJ = y * (w - 1) * 4;
+			for (var j = y * w * 4; j < (y + 1) * (w) * 4; j+=4) {
+				//skip the seam to remove
+				if (splitIndex == j) {
+					j += 4;
+				}
+				newImgData[newJ] = pixels[j];
+				newImgData[newJ + 1] = pixels[j + 1];
+				newImgData[newJ + 2] = pixels[j + 2];
+				newImgData[newJ + 3] = pixels[j + 3];
+				newJ += 4;
+				if (newJ == 792720)
+					console.log(j);
+			}
+			
+			//find connection
+			var minEnergy = seamEnergy[minIndex][y];
+			
+			if (minIndex != 0 && seamEnergy[minIndex - 1][y] < minEnergy) {
+				minIndex = minIndex - 1;
+				minEnergy = seamEnergy;
+			}
+			
+			if (minIndex != w - 1 && seamEnergy[minIndex + 1][y] < minEnergy) {
+				minIndex = minIndex + 1;
+				minEnergy = seamEnergy;
+			}
+		}
+		
+		w--;
+		h--;
+		pixels = newImgData;
 	}
+	
+	return newImgData;
+}
+
+function drawVerticalSeams(ctx, w, h, seamEnergy) {	
+	var imgData = ctx.getImageData(0, 0, w, h);
+	
+	var minIndex = 0;
+	var y = h - 1;
+	for (var x = 1; x < w; x++) {	//find min seam to remove
+		if (seamEnergy[x][y] < seamEnergy[minIndex][y])
+			minIndex = x;
+	}
+	
+	console.log(minIndex);
+	
+	//color seam red
+	var colorIndex = (y * w + minIndex) * 4;
+	imgData.data[colorIndex] = 255;
+	
+	for (y = y - 1; y >= 0; y--) {
+		//find connection
+		var minEnergy = seamEnergy[minIndex][y];
+		colorIndex -= w * 4;
+		
+		if (minIndex != 0 && seamEnergy[minIndex - 1][y] < minEnergy) {
+			minIndex = minIndex - 1;
+			minEnergy = seamEnergy;
+			colorIndex -= 4;
+		}
+		
+		if (minIndex != w - 1 && seamEnergy[minIndex + 1][y] < minEnergy) {
+			minIndex = minIndex + 1;
+			minEnergy = seamEnergy;
+			colorIndex += 4;
+		}
+		
+		imgData.data[colorIndex] = 255;
+	}
+	
+	ctx.putImageData(imgData, 0, 0);
+	//ctx.lineWidth = 1;
+	//ctx.strokeStyle = 'red';
+	//ctx.stroke();
 }

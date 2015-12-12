@@ -35,11 +35,23 @@
 	  ctx.drawImage(img, 0, 0, img.width, img.height);
 	  console.log(img.width, img.height);
 	  
-	  gradients = computeGradient(ctx, img.width, img.height);
+	  
+	  var imgData = ctx.getImageData(0, 0, img.width, img.height);
+	  gradients = computeGradient(imgData.data, img.width, img.height);
 	  drawGradient(ctx, img.width, img.height, gradients);
 	  
-	  seamEnergy = computeHorizontalSeams(gradients, img.width, img.height);
-	  drawHorizontalSeams(ctx, img.width, img.height, seamEnergy);
+	  newPixels = removeVerticalSeams(100, img.width, img.height, imgData.data);
+	  canvas.width = img.width - 100;
+	  ctx = canvas.getContext('2d');
+	  imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	  console.log("%o", newPixels.length);
+	  console.log("%o", imgData);
+	  imgData.data.set(newPixels);
+	  ctx.putImageData(imgData, 0, 0);
+	  
+	  //seamEnergy = computeVerticalSeams(gradients, img.width, img.height);
+	  
+	  //drawVerticalSeams(ctx, img.width, img.height, seamEnergy);
 	}
   </script>
 </body>

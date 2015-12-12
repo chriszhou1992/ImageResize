@@ -14,12 +14,9 @@ function colorDistance(pixels, p1, p2) {
 	return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
 }
 
-function computeGradient(ctx, w, h) {
-	var imgData = ctx.getImageData(0, 0, w, h);
-	
+function computeGradient(pixels, w, h) {
 	var gradients = [];
 	
-	var pixels = imgData.data;
 	for (var y = 0; y < h; y++) {
 		for (var x = 0; x < w; x++) {
 			var index = (y * w + x) * 4;
