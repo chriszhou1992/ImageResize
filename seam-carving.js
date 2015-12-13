@@ -1,6 +1,7 @@
 
 function computeVerticalSeams(gradients, w, h) {
 	//2D array used to memorize DP
+	console.log("Start DP--");
 	seamEnergy = new Array(w);
 	for (var i = 0; i < seamEnergy.length; i++) {
 		seamEnergy[i] = Array(h);
@@ -23,17 +24,23 @@ function computeVerticalSeams(gradients, w, h) {
 			}
 		}
 	}
+	console.log("End DP--");
 	return seamEnergy;
 }
 
 function removeVerticalSeams(times, w, h, pixels) {
+	if (times == 0)
+		return pixels;
+	
+	console.log("Compute Gradient");
+	var gradients = computeGradient(pixels, w, h);
+	console.log("End Compute Gradient");
 	
 	for (var i = 0; i < times; i++) {
-		
-		var gradients = computeGradient(pixels, w, h);
+		postMessage(i);
 		var seamEnergy = computeVerticalSeams(gradients, w, h)
 		
-		var newImgData = Array( (w - 1) * h * 4);
+		var newImgData = new Array( (w - 1) * h * 4);
 		
 		var minIndex = 0;
 		var y = h - 1;
@@ -44,9 +51,10 @@ function removeVerticalSeams(times, w, h, pixels) {
 		}
 		
 		console.log(minIndex);
+		var seamCoordinates = [];
 		
 		for (; y >= 0; y--) {
-			
+			seamCoordinates.push([minIndex, y]);
 			//remove seam in one row
 			var splitIndex = (y * w + minIndex) * 4;
 			var newJ = y * (w - 1) * 4;
@@ -78,6 +86,11 @@ function removeVerticalSeams(times, w, h, pixels) {
 		
 		w--;
 		pixels = newImgData;
+		
+		
+		console.log("Updating Gradient");
+		gradients = updateVerticalGradient(seamCoordinates, pixels, w, h, gradients);
+		console.log("End Updating Gradient");
 	}
 	
 	return newImgData;

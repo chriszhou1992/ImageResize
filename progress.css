@@ -1,0 +1,23 @@
+.timerProgress {
+	height: 300px;
+	float: middle;
+}
+.timerProgress > svg {
+	height: 100%;
+	display: block;
+}
+
+.timerProgress .progressbar-text {
+	font-size: 40px;
+	float: middle;
+}
+
+.progressbar > svg {
+	height: 100%;
+	display: block;
+}
+
+.progressbar-text {
+	font-size: 20px;
+	float: middle;
+}

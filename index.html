@@ -4,56 +4,47 @@
   <meta charset="utf-8">
   <title></title>
   
+  <link rel="stylesheet" type="text/css" href="progress.css">
+  
+  
+  <script src="jquery-2.1.4.min"></script>
   <script src="gradient.js"></script>
   <script src="seam-carving.js"></script>
+  <script src="control.js"></script>
+  <script src="progressbar.min.js"></script>
 </head>
 
 <body>
   <div>
-	<img id="img" src="wave-small.png"/>
+    Upload an image to resize:
+	<input type="file" accept="image/*" onchange="readURL(event);" />
+  </div>
+  
+  <div id="progressBar">
+  </div>
+
+  <div>
+	<img id="img" src="wave-small.png" alt="your image" onload="drawOnCanvas(this)"/><br>
+	
+	Width: <input type="text" name="width" id="winput"><br>
+	Height: <input type="text" name="height" id="hinput"><br>
+	<button type="button" onclick="retargetImage(this)" id="startbtn">Retarget Image!</button>
+	
+   
+  
   </div>
   
   <div>
 	<canvas id="canvas"></canvas>
   </div>
   
+   <div class="timerProgress" id="timerProgress">
+    </div>
+  
   <script>
     window.onload = function() {
-	  var img = new Image();
-	  var loadedImg = document.getElementById('img');
-	  
-	  img.src = loadedImg.src;
-	  console.log("%o", img);
-	  
-	  //var canvas = document.createElement('canvas');
-	  var canvas = document.getElementById('canvas');
-	  canvas.width = img.width;
-	  canvas.height = img.height;
-	  
-	  var ctx = canvas.getContext('2d');
-	  
-	  ctx.drawImage(img, 0, 0, img.width, img.height);
-	  console.log(img.width, img.height);
-	  
-	  
-	  var imgData = ctx.getImageData(0, 0, img.width, img.height);
-	  gradients = computeGradient(imgData.data, img.width, img.height);
-	  drawGradient(ctx, img.width, img.height, gradients);
-	  
-	  newPixels = removeVerticalSeams(10, img.width, img.height, imgData.data);
-	  canvas.width = img.width - 10;
-	  canvas.height = img.height;
-	  ctx = canvas.getContext('2d');
-	  imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-	  console.log("%o", newPixels.length);
-	  console.log("%o", imgData);
-	  imgData.data.set(newPixels);
-	  ctx.putImageData(imgData, 0, 0);
-	  
-	  //seamEnergy = computeVerticalSeams(gradients, img.width, img.height);
-	  
-	  //drawVerticalSeams(ctx, img.width, img.height, seamEnergy);
-	}
+		
+	};
   </script>
 </body>
 
