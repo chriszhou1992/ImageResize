@@ -101,11 +101,11 @@ function retargetImage(btn) {
 
 	if (window.Worker) {
 		var thread = new Worker("worker.js");
-		thread.postMessage([w - newW, w, h, imgData.data]);
+		thread.postMessage([w - newW, h - newH, w, h, imgData.data]);
 
 		thread.onmessage = function(e) {
 			if (isNumber(e.data)) {
-				var percentage = e.data / (w - newW);
+				var percentage = e.data;
 				progressBar.animate(percentage);
 				progressBar.setText(percentage * 100 + "%");
 			}

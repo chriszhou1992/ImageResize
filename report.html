@@ -1,0 +1,164 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="css/lightbox.css" rel="stylesheet">
+  <link href="report.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles/default.css">
+  <script src="highlight.pack.js"></script>
+</head>
+<body>
+
+  <script>
+	hljs.initHighlightingOnLoad();
+	hljs.configure({
+	  tabReplace: '    '
+	})
+  </script>
+
+<div id="retargeting">
+
+<h1>Image Retargeting</h1>
+<p>We implemented the Content-Aware Image Resizing algorithm based on seam-carving proposed by Shai Avidan and Ariel Shamir in their 2007 SIGGRAPH paper <a href="http://perso.crans.org/frenoy/matlab2012/seamcarving.pdf">Seam Carving for Content-Aware Image Resizing</a>. The online demo is accessible <a href="index.html">here</a>.
+
+<h2>Gradient Computation</h2>
+<p>Before we get to how to resize an image with aware of its content, we first need to figure out how to compute the gradient of an image. According to paper, the gradient of an image 
+<img class="latex" title="I: \mathbb{R}^2 \to \mathbb{R}^3" alt="I: \mathbb{R}^2 \to \mathbb{R}^3" src="http://s0.wp.com/latex.php?latex=I%3A+%5Cmathbb%7BR%7D%5E2+%5Cto+%5Cmathbb%7BR%7D%5E3&amp;bg=ffffff&amp;fg=36312d&amp;s=0">
+, where image <img class="latex" title="I" alt="I" src="http://s0.wp.com/latex.php?latex=I&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> is a function that maps a 2D coordinate <img class="latex" title="(x,y)" alt="(x,y)" src="http://s0.wp.com/latex.php?latex=%28x%2Cy%29&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> to a 3D color intensity <img class="latex" title="I(x,y) = (r,g,b)" alt="I(x,y) = (r,g,b)" src="http://s0.wp.com/latex.php?latex=I%28x%2Cy%29+%3D+%28r%2Cg%2Cb%29&amp;bg=ffffff&amp;fg=36312d&amp;s=0">, is defined by
+
+<p style="text-align:center;">
+<img class="latex" title="\displaystyle g_{i,j} = \left | \frac{\partial I}{\partial x} (i,j) \right | + \left | \frac{\partial I}{\partial y} (i,j) \right |" alt="\displaystyle g_{i,j} = \left | \frac{\partial I}{\partial x} (i,j) \right | + \left | \frac{\partial I}{\partial y} (i,j) \right |" src="http://s0.wp.com/latex.php?latex=%5Cdisplaystyle+g_%7Bi%2Cj%7D+%3D+%5Cleft+%7C+%5Cfrac%7B%5Cpartial+I%7D%7B%5Cpartial+x%7D+%28i%2Cj%29+%5Cright+%7C+%2B+%5Cleft+%7C+%5Cfrac%7B%5Cpartial+I%7D%7B%5Cpartial+y%7D+%28i%2Cj%29+%5Cright+%7C&bg=ffffff&fg=36312d&s=0">
+</p>
+
+However, computing the partial derivatives is complex. Fortunately we can approximate an image's partial derivative 
+<img class="latex" title="\left \langle \partial I / \partial x, \partial I / \partial y \right \rangle" alt="\left \langle \partial I / \partial x, \partial I / \partial y \right \rangle" src="http://s0.wp.com/latex.php?latex=%5Cleft+%5Clangle+%5Cpartial+I+%2F+%5Cpartial+x%2C+%5Cpartial+I+%2F+%5Cpartial+y+%5Cright+%5Crangle&amp;bg=ffffff&amp;fg=36312d&amp;s=0">
+ at 
+<img class="latex" title="(x,y)" alt="(x,y)" src="http://s0.wp.com/latex.php?latex=%28x%2Cy%29&amp;bg=ffffff&amp;fg=36312d&amp;s=0">
+ by inspecting its neighborhood values:
+ 
+<p style="text-align:center;">
+<img class="latex" title="I(x-1,y), I(x+1, y), I(x,y-1), I(x,y+1)" alt="I(x-1,y), I(x+1, y), I(x,y-1), I(x,y+1)" src="http://s0.wp.com/latex.php?latex=I%28x-1%2Cy%29%2C+I%28x%2B1%2C+y%29%2C+I%28x%2Cy-1%29%2C+I%28x%2Cy%2B1%29&bg=ffffff&fg=36312d&s=0">
+.
+</p>
+
+For each pixel, we use <img class="latex" title="|I(x+1,y) - I(x-1,y)| / 2" alt="|I(x+1,y) - I(x-1,y)| / 2" src="http://s0.wp.com/latex.php?latex=%7CI%28x%2B1%2Cy%29+-+I%28x-1%2Cy%29%7C+%2F+2&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> as the partial derivative in <img class="latex" title="x" alt="x" src="http://s0.wp.com/latex.php?latex=x&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> direction, and <img class="latex" title="|I(x,y+1) - I(x,y-1)| / 2" alt="|I(x,y+1) - I(x,y-1)| / 2" src="http://s0.wp.com/latex.php?latex=%7CI%28x%2Cy%2B1%29+-+I%28x%2Cy-1%29%7C+%2F+2&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> as the partial derivative in <img class="latex" title="y" alt="y" src="http://s0.wp.com/latex.php?latex=y&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> direction. Note that is is computing the magnitude of a difference vector, thus it is computed in gradient.js by 
+<pre><code class="js">
+/*
+	Compute color vector distance.
+*/
+function colorDistance(pixels, p1, p2) {
+	var rDiff = pixels[p1] - pixels[p2];
+	var gDiff = pixels[p1 + 1] - pixels[p2 + 1];
+	var bDiff = pixels[p1 + 2] - pixels[p2 + 2];
+
+	return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
+}
+</code></pre>
+In our demo, when you click on the regarget image button, the gradient of the image is displayed before the seam-carving is done.
+ 
+This approximation makes sense since by definition, the partial derivative <img class="latex" title="\partial I / \partial x" alt="\partial I / \partial x" src="http://s0.wp.com/latex.php?latex=%5Cpartial+I+%2F+%5Cpartial+x&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> is 
+<p style="text-align:center;">
+<img class="latex" title="\displaystyle \lim_{h \to 0} \frac{|I(x+h,y) - I(x,y)|}{h}" alt="\displaystyle \lim_{h \to 0} \frac{|I(x+h,y) - I(x,y)|}{h}" src="http://s0.wp.com/latex.php?latex=%5Cdisplaystyle+%5Clim_%7Bh+%5Cto+0%7D+%5Cfrac%7B%7CI%28x%2Bh%2Cy%29+-+I%28x%2Cy%29%7C%7D%7Bh%7D&bg=ffffff&fg=36312d&s=0">
+</p>
+
+Mathematically, this is equivalent to
+<p style="text-align:center;">
+<img class="latex" title="\displaystyle \lim_{h \to 0} \frac{|I(x+h,y) - I(x-h,y)|}{2h}" alt="\displaystyle \lim_{h \to 0} \frac{|I(x+h,y) - I(x-h,y)|}{2h}" src="http://s0.wp.com/latex.php?latex=%5Cdisplaystyle+%5Clim_%7Bh+%5Cto+0%7D+%5Cfrac%7B%7CI%28x%2Bh%2Cy%29+-+I%28x-h%2Cy%29%7C%7D%7B2h%7D&bg=ffffff&fg=36312d&s=0">
+</p>
+
+The smallest <img class="latex" title="h" alt="h" src="http://s0.wp.com/latex.php?latex=h&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> we can get is <img class="latex" title="h=1" alt="h=1" src="http://s0.wp.com/latex.php?latex=h%3D1&amp;bg=ffffff&amp;fg=36312d&amp;s=0">, so that's where our approximation came from.
+
+<h2>Seam Carving</h2>
+A seam is a vertical or horizontal trail of connected pixels where only one pixel is taken from each row/column. For example a <i>vertical seam</i> in <img class="latex" title="I" alt="I" src="http://s0.wp.com/latex.php?latex=I&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> is defined by a list of coordinates <img class="latex" title="s_i = (x_i, y_i)" alt="s_i = (x_i, y_i)" src="http://s0.wp.com/latex.php?latex=s_i+%3D+%28x_i%2C+y_i%29&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> where
+<ul>
+  <li><img class="latex" title="y_i" alt="y_i" src="http://s0.wp.com/latex.php?latex=y_i&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> is strictly increasing.</li>
+  <li><img class="latex" title="|x_i - x_{i+1}| \leq 1" alt="|x_i - x_{i+1}| \leq 1" src="http://s0.wp.com/latex.php?latex=%7Cx_i+-+x_%7Bi%2B1%7D%7C+%5Cleq+1&amp;bg=ffffff&amp;fg=36312d&amp;s=0"> for all <img class="latex" title="0 \leq i &lt; n-1" alt="0 \leq i &lt; n-1" src="http://s0.wp.com/latex.php?latex=0+%5Cleq+i+%3C+n-1&amp;bg=ffffff&amp;fg=36312d&amp;s=0">.</li>
+</ul>
+A horizontal seam is similarly defined. Below we present an example of vertical seam.
+<p align="center">
+  <img src="">
+</p>
+
+<p>The cost of a seam is defined by the sum of the energy of each coordinate contatined in the seam. The energy function we used is simply the gradient we defined above.
+
+<p>
+The seam with the lowest energy is the seam that contains the lowest information in the image, hence removing it would maintain the useful information in our image. This is the essense of the content-aware image resizing idea. To compute the seam with the minimum seam cost, we use the following dynamic programming algorithm defined in the paper.
+<p align="center">
+  <img border="0" src="dp.jpg">
+</p>
+
+<h3>Reduce Image Size</h3>
+<p>To make the image smaller, we can just remove the minimum cost seam we obtained, which would essentially reduce either our image width or height by 1 depending on whether the seam is vertical or horizontal. Then we can repeat this process to find the next optimal seam for removal. As we continue this effectively resizes the image.
+
+<p>When both width and height of an image changes, we need to figure out an order for which we remove the horizontal and vertical seam to make sure the process is still correct. The paper presented a dynamic programming algorithm to obtain this optimal ordering. From our understanding, what that algorithm does is simply compare the seam cost of the optimal vertical seam and the optimal horizontal seam, then remove the one with smaller cost. We present an example produced from our implementation below.
+
+<p align="center">
+  <img src="#.png">
+</p>
+
+
+<h3>Enlarge Image</h3>
+<p>The idea for image enlargement is similar to image reduction. This time we would add the seams with minimum cost since those seams contain the least information, hence adding them would produce the least artifact in enlarging the image.
+
+<p>However, if we always choose to add the seam with least cost, then the enlarged image would produce a stretching artifact. We can see this by the example presented in the paper below:
+
+<p align="center">
+  <img src="artifact.png">
+</p>
+
+<p>To fix this, the authors proposed that instead of adding the seam with minimum cost each time, we would add <img class="latex" src="http://latex.codecogs.com/gif.latex?k" border="0"/> seams with minimum cost. We present an example produced from our implementation below. The seam is duplicated by averaging the pixels in the seam with its left and right (or up and down) neighbors.
+
+<p align="center">
+  <img src="#">
+</p>
+
+
+
+
+<h3>Limitations of Seam Carving Image Retargeting</h3>
+Consider the image below.
+<p align="center">
+  <img src="before.jpg">
+</p>
+
+When we applied the resizing algorithm presented in the paper with optimal-ordering seam removal, the result is below.
+<p align="center">
+  <img src="after.png">
+</p>
+
+We can see the straight lines are not maintained. This artifact is also visible for faces.
+<p align="center">
+  <img src="before1.png">
+  <img src="after1.png">
+</p>
+
+
+<p>The paper also noted such artifacts. The authors presented a solution by allowing users to choose regions where posivie/negative energy is added to the energy calculation so that the algorithm would make sure that area would not change in resizing.
+
+<p>In our implementation we did a different workaround without user intervention. Similar to the idea in content amplification below, we would first scale the original image to either the target width or height, whichever dimension changed smaller, then we use seam-carving to resize the other dimension left. The result it presented below:
+
+<p align="center">
+  <img src="improved.png">
+  <img src="improved1.png">
+</p>
+
+
+<h3>Content Amplification</h3>
+<p>Similar to the limitation discussed above, content amplification works by first scaling the image up, then using seam carving to reduce the image size back to the original. We present an example below.
+
+<p align="center">
+  <img src="#.png">
+  <img src="#.png">
+</p>
+
+
+
+<h2>Performance</h2>
+<p>In our js demo, you can see the application runs pretty slow. The time grows worse as the image gets larger. We have did a benchmark on our js code, and we found out it is not the dynamic programming algorithm or the gradient computation that's taking up the most time, but it's the shifting of the whole image after removing one seam that takes up the most time. Unfortunately we couldn't find a way to overcome this in our implementation.
+
+<p> 
+As an alternative, we provide a Matlab implementation of seam-carving <a href="imageResize.zip">here</a>, interestingly the Matlab implementation runs much faster.
+
+<!--a href="naive10.png" data-lightbox="naive-irrdiance" data-title="1/10 sec. Exposure Irradiance"><center><img src="naive10.png"/-->
+<script src="js/lightbox-plus-jquery.min.js"></script>
+</body>
+</html>

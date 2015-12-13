@@ -34,6 +34,35 @@ function updateVerticalGradient(seamCoordinates, pixels, w, h, oldGradient) {
 			else {
 				newGradient[currIndex] = oldGradient[y * (w + 1) + x + 1];
 			}
+			if (isNaN(newGradient[currIndex]))
+				console.log(x, y);
+		}
+	}
+	return newGradient;
+}
+
+function updateHorizontalGradient(seamCoordinates, pixels, w, h, oldGradient) {
+	var newGradient = new Array(w * h);
+	for (var i = 0; i < seamCoordinates.length; i++) {
+		var coord = seamCoordinates[i];
+		var x = coord[0];
+		//update gradient for that row
+		for (var y = 0; y < h; y++) {
+			var currIndex = y * w + x;
+			//gradient before do not change
+			if (y < coord[1] - 1) {
+				newGradient[currIndex] = oldGradient[y * w + x];
+			}
+			else if (y == coord[1] - 1 || y == coord[1]) {
+				newGradient[currIndex] = colorDistance(pixels,
+					y == h - 1? currIndex * 4 : (currIndex + w) * 4 ,
+					y == 0? currIndex * 4 : (currIndex - w) * 4);
+			}
+			else {
+				newGradient[currIndex] = oldGradient[y * w + x + 1];
+			}
+			if (isNaN(newGradient[currIndex]))
+				console.log(x, y);
 		}
 	}
 	return newGradient;
@@ -58,6 +87,7 @@ function computeGradient(pixels, w, h) {
 				y == 0? index : index - w * 4);
 			
 			if (isNaN(horizontal) || isNaN(vertical)) {
+				console.log(x, y);
 				console.log(horizontal);
 				console.log(vertical);
 			} 
